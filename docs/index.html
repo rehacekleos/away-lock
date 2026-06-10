@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="dark light">
+    <meta
+      name="description"
+      content="AwayLock is a free macOS menu bar app that automatically locks your Mac when your paired Bluetooth device is no longer nearby."
+    >
+    <title>AwayLock - Bluetooth proximity lock for Mac</title>
+    <link rel="icon" href="./assets/awaylock-icon.png">
+    <link rel="apple-touch-icon" href="./assets/awaylock-icon.png">
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="#top" aria-label="AwayLock home">
+        <img src="./assets/awaylock-icon.png" alt="" width="34" height="34">
+        <span>AwayLock</span>
+      </a>
+      <nav aria-label="Primary navigation">
+        <a href="#features">Features</a>
+        <a href="#privacy">Privacy</a>
+        <a href="https://github.com/leosrehacek/AwayLock">GitHub</a>
+      </nav>
+    </header>
+
+    <main id="top">
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="hero-copy">
+          <p class="eyebrow">Free macOS menu bar app</p>
+          <h1 id="hero-title">Lock your Mac when your Bluetooth device moves away.</h1>
+          <p class="hero-text">
+            AwayLock watches a paired Bluetooth device and locks your Mac when
+            the signal disappears or becomes weak for too long.
+          </p>
+          <div class="actions" aria-label="Download and support actions">
+            <a class="button primary" href="https://github.com/leosrehacek/AwayLock/releases">
+              Download preview
+            </a>
+            <a class="button secondary" href="https://github.com/leosrehacek/AwayLock">
+              View on GitHub
+            </a>
+          </div>
+          <a class="coffee" href="https://www.buymeacoffee.com/leosrehacek" aria-label="Support AwayLock on Buy Me a Coffee">
+            <img
+              src="https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20coffee&emoji=%E2%98%95&slug=leosrehacek&button_colour=FFDD00&font_colour=000000&font_family=Cookie&outline_colour=000000&coffee_colour=ffffff"
+              alt="Buy me a coffee"
+            >
+          </a>
+        </div>
+        <div class="hero-visual" aria-hidden="true">
+          <div class="signal-ring ring-one"></div>
+          <div class="signal-ring ring-two"></div>
+          <img src="./assets/awaylock-icon.png" alt="">
+        </div>
+      </section>
+
+      <section class="status-band" aria-label="Preview status">
+        <div>
+          <strong>Preview build</strong>
+          <span>Unsigned and not notarized yet. macOS may require right-clicking the app and choosing Open.</span>
+        </div>
+      </section>
+
+      <section id="features" class="section" aria-labelledby="features-title">
+        <div class="section-heading">
+          <p class="eyebrow">Built for everyday use</p>
+          <h2 id="features-title">Quiet, local, and automatic.</h2>
+        </div>
+        <div class="feature-grid">
+          <article>
+            <span class="feature-icon">01</span>
+            <h3>Known devices only</h3>
+            <p>Choose from Bluetooth devices already paired or known to your Mac.</p>
+          </article>
+          <article>
+            <span class="feature-icon">02</span>
+            <h3>RSSI signal logic</h3>
+            <p>Uses averaged Bluetooth signal strength with configurable timeout and threshold.</p>
+          </article>
+          <article>
+            <span class="feature-icon">03</span>
+            <h3>Real Mac locking</h3>
+            <p>Locks the current macOS session instead of simply turning off the display.</p>
+          </article>
+          <article>
+            <span class="feature-icon">04</span>
+            <h3>Menu bar control</h3>
+            <p>Pause monitoring, lock now, inspect logs, and tune settings from a compact popover.</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="privacy" class="section split" aria-labelledby="privacy-title">
+        <div>
+          <p class="eyebrow">Privacy first</p>
+          <h2 id="privacy-title">Your Bluetooth data stays on your Mac.</h2>
+        </div>
+        <div class="copy-block">
+          <p>
+            AwayLock scans local Bluetooth LE advertisements and stores settings
+            locally. It does not upload device names, identifiers, RSSI values,
+            logs, or preferences to any server.
+          </p>
+          <a href="https://github.com/leosrehacek/AwayLock/blob/main/PRIVACY.md">Read the privacy note</a>
+        </div>
+      </section>
+
+      <section class="section download" aria-labelledby="download-title">
+        <div>
+          <p class="eyebrow">Get started</p>
+          <h2 id="download-title">Download the latest preview from GitHub Releases.</h2>
+        </div>
+        <a class="button primary" href="https://github.com/leosrehacek/AwayLock/releases">
+          Open releases
+        </a>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <span>AwayLock is free and open source.</span>
+      <a href="https://buymeacoffee.com/leosrehacek">Support development</a>
+    </footer>
+  </body>
+</html>
