@@ -194,12 +194,16 @@ h3 {
 
 .coffee {
   display: inline-flex;
-}
-
-.coffee img {
-  width: 214px;
-  max-width: 100%;
-  height: auto;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 18px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--ink);
+  background: #ffdd00;
+  font-weight: 800;
+  box-shadow: 0 12px 26px rgba(21, 24, 33, 0.12);
 }
 
 .hero-visual {

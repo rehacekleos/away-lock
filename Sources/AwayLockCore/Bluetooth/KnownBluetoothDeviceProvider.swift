@@ -30,12 +30,13 @@ public enum KnownBluetoothDeviceProvider {
 
     public static func isKnownDevice(_ device: BluetoothDevice, knownDevices: [KnownBluetoothDevice]) -> Bool {
         let normalizedDeviceName = normalize(device.name)
+        guard !normalizedDeviceName.isEmpty else {
+            return false
+        }
 
         return knownDevices.contains { knownDevice in
             let knownName = normalize(knownDevice.name)
-            return normalizedDeviceName == knownName ||
-                normalizedDeviceName.contains(knownName) ||
-                knownName.contains(normalizedDeviceName)
+            return !knownName.isEmpty && normalizedDeviceName == knownName
         }
     }
 

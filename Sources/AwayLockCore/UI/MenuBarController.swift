@@ -11,6 +11,7 @@ final class MenuBarController: NSObject {
     private let lockService: LockService
     private let logger: EventLogger
 
+    private let navigation = PopoverNavigation()
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private let popover = NSPopover()
     private let onboardingWindow = OnboardingWindowController()
@@ -78,16 +79,17 @@ final class MenuBarController: NSObject {
         }
 
         button.target = self
-        button.action = #selector(togglePopover)
+        button.action = #selector(handleStatusButtonClick)
         button.sendAction(on: [.leftMouseUp, .rightMouseUp])
     }
 
     private func configurePopover() {
         popover.behavior = .transient
         popover.animates = true
-        popover.contentSize = NSSize(width: 860, height: 640)
+        popover.contentSize = NSSize(width: 420, height: 620)
         popover.contentViewController = NSHostingController(
             rootView: AwayMenuPopoverView(
+                navigation: navigation,
                 settings: settings,
                 deviceStore: deviceStore,
                 scanner: scanner,
@@ -118,36 +120,38 @@ final class MenuBarController: NSObject {
         }
 
         let symbolName: String
-        let tintColor: NSColor?
-
         switch monitor.status {
         case .nearby:
             symbolName = "lock.shield"
-            tintColor = .controlAccentColor
         case .weakSignal, .lockingPending:
             symbolName = "exclamationmark.triangle"
-            tintColor = .systemOrange
         case .notFound, .bluetoothUnavailable:
             symbolName = "lock.slash"
-            tintColor = .systemRed
         case .locked:
             symbolName = "lock.fill"
-            tintColor = .systemRed
         case .paused:
             symbolName = "pause.circle"
-            tintColor = .systemBlue
         case .disabled:
             symbolName = "lock.open"
-            tintColor = .disabledControlTextColor
         }
 
-        if let image = NSImage(systemSymbolName: symbolName, accessibilityDescription: "AwayLock") {
-            image.isTemplate = true
+        if let image = whiteStatusImage(named: symbolName) {
             button.image = image
-            button.contentTintColor = tintColor
         } else {
             button.title = "AL"
+            button.contentTintColor = .white
         }
+    }
+
+    private func whiteStatusImage(named symbolName: String) -> NSImage? {
+        let configuration = NSImage.SymbolConfiguration(paletteColors: [.white])
+        guard let image = NSImage(systemSymbolName: symbolName, accessibilityDescription: "AwayLock")?
+            .withSymbolConfiguration(configuration) else {
+            return nil
+        }
+
+        image.isTemplate = false
+        return image
     }
 
     private func statusDescription() -> String {
@@ -174,7 +178,40 @@ final class MenuBarController: NSObject {
         return "Unknown"
     }
 
-    @objc private func togglePopover() {
+    @objc private func handleStatusButtonClick() {
+        if NSApp.currentEvent?.type == .rightMouseUp {
+            showContextMenu()
+            return
+        }
+
+        togglePopover()
+    }
+
+    @objc private func openDashboardFromMenu() {
+        showPopover(section: .overview)
+    }
+
+    @objc private func openDeviceSelectionFromMenu() {
+        showPopover(section: .devices)
+    }
+
+    @objc private func openSettingsFromMenu() {
+        showPopover(section: .settings)
+    }
+
+    @objc private func lockNowFromMenu() {
+        lockNow()
+    }
+
+    @objc private func openAboutFromMenu() {
+        showPopover(section: .about)
+    }
+
+    @objc private func quitFromMenu() {
+        NSApp.terminate(nil)
+    }
+
+    private func togglePopover() {
         guard let button = statusItem.button else {
             return
         }
@@ -182,9 +219,92 @@ final class MenuBarController: NSObject {
         if popover.isShown {
             popover.performClose(nil)
         } else {
-            popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
-            popover.contentViewController?.view.window?.makeKey()
+            showPopover(relativeTo: button)
         }
+    }
+
+    private func showPopover(section: PopoverSection) {
+        navigation.section = section
+
+        guard let button = statusItem.button else {
+            return
+        }
+
+        if popover.isShown {
+            popover.contentViewController?.view.window?.makeKey()
+            return
+        }
+
+        showPopover(relativeTo: button)
+    }
+
+    private func showPopover(relativeTo button: NSStatusBarButton) {
+        popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+        popover.contentViewController?.view.window?.makeKey()
+    }
+
+    private func showContextMenu() {
+        let menu = NSMenu()
+        menu.addItem(menuItem("Dashboard", action: #selector(openDashboardFromMenu), keyEquivalent: ""))
+        menu.addItem(menuItem("Select Device", action: #selector(openDeviceSelectionFromMenu), keyEquivalent: ""))
+        menu.addItem(menuItem("Settings", action: #selector(openSettingsFromMenu), keyEquivalent: ","))
+        menu.addItem(.separator())
+        menu.addItem(menuItem("Lock Now", action: #selector(lockNowFromMenu), keyEquivalent: "l"))
+        addSelectedDeviceStats(to: menu)
+        menu.addItem(.separator())
+        menu.addItem(menuItem("About AwayLock", action: #selector(openAboutFromMenu), keyEquivalent: ""))
+        menu.addItem(.separator())
+        menu.addItem(menuItem("Quit", action: #selector(quitFromMenu), keyEquivalent: "q"))
+
+        statusItem.menu = menu
+        statusItem.button?.performClick(nil)
+        statusItem.menu = nil
+    }
+
+    private func menuItem(_ title: String, action: Selector, keyEquivalent: String) -> NSMenuItem {
+        let item = NSMenuItem(title: title, action: action, keyEquivalent: keyEquivalent)
+        item.target = self
+        return item
+    }
+
+    private func addSelectedDeviceStats(to menu: NSMenu) {
+        guard let selectedDevice = deviceStore.selectedDevice else {
+            return
+        }
+
+        menu.addItem(.separator())
+        menu.addItem(disabledMenuItem("Device: \(selectedDevice.name)"))
+        menu.addItem(disabledMenuItem("Status: \(statusDescription())"))
+        menu.addItem(disabledMenuItem("RSSI: \(currentRssiDescription())"))
+        menu.addItem(disabledMenuItem("Average: \(averageRssiDescription())"))
+
+        if let visibleDevice = scanner.devices.first(where: { $0.identifier == selectedDevice.identifier }) {
+            menu.addItem(disabledMenuItem("Last seen: \(relativeDateDescription(visibleDevice.lastSeen))"))
+        }
+    }
+
+    private func disabledMenuItem(_ title: String) -> NSMenuItem {
+        let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
+        item.isEnabled = false
+        return item
+    }
+
+    private func averageRssiDescription() -> String {
+        guard let averageRssi = monitor.averageRssi else {
+            return "Unknown"
+        }
+        return "\(Int(averageRssi.rounded())) dBm"
+    }
+
+    private func relativeDateDescription(_ date: Date) -> String {
+        let seconds = max(0, Int(Date().timeIntervalSince(date).rounded()))
+        if seconds < 2 {
+            return "now"
+        }
+        if seconds < 60 {
+            return "\(seconds)s ago"
+        }
+        return "\(seconds / 60)m ago"
     }
 
     private func toggleEnabled() {

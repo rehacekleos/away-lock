@@ -3,13 +3,20 @@ import AppKit
 @MainActor
 enum AppearanceService {
     static func apply(_ appearance: AppAppearance) {
+        let nsAppearance: NSAppearance?
+
         switch appearance {
         case .system:
-            NSApp.appearance = nil
+            nsAppearance = nil
         case .light:
-            NSApp.appearance = NSAppearance(named: .aqua)
+            nsAppearance = NSAppearance(named: .aqua)
         case .dark:
-            NSApp.appearance = NSAppearance(named: .darkAqua)
+            nsAppearance = NSAppearance(named: .darkAqua)
+        }
+
+        NSApp.appearance = nsAppearance
+        for window in NSApp.windows {
+            window.appearance = nsAppearance
         }
     }
 }

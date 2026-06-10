@@ -46,25 +46,6 @@ final class SettingsWindowController {
 }
 
 @MainActor
-final class LogsWindowController {
-    private var window: NSWindow?
-
-    func show(logger: EventLogger) {
-        if let window {
-            window.makeKeyAndOrderFront(nil)
-            NSApp.activate(ignoringOtherApps: true)
-            return
-        }
-
-        window = makeWindow(
-            title: "AwayLock Logs",
-            size: NSSize(width: 720, height: 520),
-            rootView: LogsView(logger: logger)
-        )
-    }
-}
-
-@MainActor
 final class OnboardingWindowController {
     private var window: NSWindow?
 

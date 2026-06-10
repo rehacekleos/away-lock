@@ -102,6 +102,36 @@ import Testing
 }
 
 @MainActor
+@Test func knownDeviceMatchingDoesNotTrustSubstringNames() {
+    let device = BluetoothDevice(
+        name: "Leos iPhone Clone",
+        identifier: UUID(uuidString: "DDDDDDDD-0000-0000-0000-000000000000")!,
+        rssi: -45,
+        lastSeen: Date(timeIntervalSince1970: 450)
+    )
+    let knownDevices = [
+        KnownBluetoothDevice(name: "Leos iPhone", address: "AA-BB-CC-DD-EE-FF")
+    ]
+
+    #expect(KnownBluetoothDeviceProvider.isKnownDevice(device, knownDevices: knownDevices) == false)
+}
+
+@MainActor
+@Test func knownDeviceMatchingAllowsExactNormalizedNamesOnly() {
+    let device = BluetoothDevice(
+        name: "  LEOS IPHONE  ",
+        identifier: UUID(uuidString: "EEEEEEEE-0000-0000-0000-000000000000")!,
+        rssi: -45,
+        lastSeen: Date(timeIntervalSince1970: 460)
+    )
+    let knownDevices = [
+        KnownBluetoothDevice(name: "Leos iPhone", address: "AA-BB-CC-DD-EE-FF")
+    ]
+
+    #expect(KnownBluetoothDeviceProvider.isKnownDevice(device, knownDevices: knownDevices) == true)
+}
+
+@MainActor
 @Test func bluetoothDevicesSortByIdentifierForStablePickerOrder() {
     let now = Date(timeIntervalSince1970: 400)
     let devices = [

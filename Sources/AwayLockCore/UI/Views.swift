@@ -1,8 +1,68 @@
 import AppKit
 import SwiftUI
 
+extension AppAppearance {
+    var colorScheme: ColorScheme? {
+        switch self {
+        case .system:
+            return Self.currentSystemColorScheme
+        case .light:
+            return .light
+        case .dark:
+            return .dark
+        }
+    }
+
+    private static var currentSystemColorScheme: ColorScheme {
+        UserDefaults.standard.string(forKey: "AppleInterfaceStyle") == "Dark" ? .dark : .light
+    }
+}
+
+@MainActor
+final class PopoverNavigation: ObservableObject {
+    @Published var section: PopoverSection = .overview
+}
+
+enum PopoverSection: String, CaseIterable, Identifiable {
+    case overview
+    case devices
+    case settings
+    case about
+
+    static let sidebarSections: [PopoverSection] = [.overview, .devices, .settings]
+
+    var id: String { rawValue }
+
+    var systemImage: String {
+        switch self {
+        case .overview:
+            return "speedometer"
+        case .devices:
+            return "dot.radiowaves.left.and.right"
+        case .settings:
+            return "gearshape"
+        case .about:
+            return "info.circle"
+        }
+    }
+
+    var title: String {
+        switch self {
+        case .overview:
+            return "Dashboard"
+        case .devices:
+            return "Select Device"
+        case .settings:
+            return "Settings"
+        case .about:
+            return "About AwayLock"
+        }
+    }
+}
+
 @MainActor
 struct AwayMenuPopoverView: View {
+    @ObservedObject var navigation: PopoverNavigation
     @ObservedObject var settings: SettingsStore
     @ObservedObject var deviceStore: DeviceStore
     @ObservedObject var scanner: BluetoothScanner
@@ -15,16 +75,14 @@ struct AwayMenuPopoverView: View {
     let resume: () -> Void
     let quit: () -> Void
 
-    @State private var section: PopoverSection = .overview
-
     var body: some View {
         HStack(spacing: 0) {
-            PopoverSidebar(section: $section, status: monitor.status)
+            PopoverSidebar(section: $navigation.section, status: monitor.status)
 
             Divider()
 
             ZStack {
-                switch section {
+                switch navigation.section {
                 case .overview:
                     PopoverOverviewView(
                         settings: settings,
@@ -40,55 +98,21 @@ struct AwayMenuPopoverView: View {
                     DeviceSelectionView(scanner: scanner, deviceStore: deviceStore) { device in
                         deviceStore.select(device)
                         logger.add("Selected device: \(device.name), RSSI \(device.rssi.map(String.init) ?? "unknown")")
-                        section = .overview
+                        navigation.section = .overview
                     }
                 case .settings:
                     SettingsView(settings: settings)
-                case .logs:
-                    LogsView(logger: logger)
+                case .about:
+                    AboutView()
                 }
             }
-            .frame(width: 780, height: 640)
+            .frame(width: 360, height: 620)
         }
-        .frame(width: 860, height: 640)
+        .frame(width: 420, height: 620)
         .onAppear {
             scanner.startScanning()
         }
-    }
-}
-
-private enum PopoverSection: String, CaseIterable, Identifiable {
-    case overview
-    case devices
-    case settings
-    case logs
-
-    var id: String { rawValue }
-
-    var systemImage: String {
-        switch self {
-        case .overview:
-            return "speedometer"
-        case .devices:
-            return "dot.radiowaves.left.and.right"
-        case .settings:
-            return "gearshape"
-        case .logs:
-            return "list.bullet.rectangle"
-        }
-    }
-
-    var title: String {
-        switch self {
-        case .overview:
-            return "Overview"
-        case .devices:
-            return "Devices"
-        case .settings:
-            return "Settings"
-        case .logs:
-            return "Logs"
-        }
+        .preferredColorScheme(settings.appearance.colorScheme)
     }
 }
 
@@ -102,14 +126,14 @@ private struct PopoverSidebar: View {
                 .padding(.top, 18)
                 .padding(.bottom, 8)
 
-            ForEach(PopoverSection.allCases) { item in
+            ForEach(PopoverSection.sidebarSections) { item in
                 Button {
                     section = item
                 } label: {
                     Image(systemName: item.systemImage)
                         .font(.system(size: 20, weight: .semibold))
                         .foregroundStyle(section == item ? .blue : .secondary)
-                        .frame(width: 48, height: 44)
+                        .frame(width: 44, height: 42)
                         .background(
                             RoundedRectangle(cornerRadius: 8, style: .continuous)
                                 .fill(section == item ? Color.blue.opacity(0.16) : Color.clear)
@@ -135,7 +159,7 @@ private struct PopoverSidebar: View {
                 Image(systemName: "cup.and.saucer.fill")
                     .font(.system(size: 18, weight: .semibold))
                     .foregroundStyle(.orange)
-                    .frame(width: 48, height: 40)
+                    .frame(width: 44, height: 40)
                     .background(
                         RoundedRectangle(cornerRadius: 8, style: .continuous)
                             .fill(Color.orange.opacity(0.13))
@@ -150,7 +174,7 @@ private struct PopoverSidebar: View {
                 .help(status.displayName)
                 .padding(.bottom, 18)
         }
-        .frame(width: 80, height: 640)
+        .frame(width: 60, height: 620)
         .background(.ultraThinMaterial)
     }
 
@@ -187,13 +211,13 @@ private struct PopoverOverviewView: View {
             VStack(alignment: .leading, spacing: 16) {
                 AwayHeader(
                     title: "AwayLock",
-                    subtitle: "Bluetooth proximity protection for this Mac.",
+                    subtitle: "Bluetooth proximity locking for this Mac.",
                     systemImage: "lock.shield"
                 ) {
                     StatusPill(text: monitor.status.displayName, systemImage: statusIcon, tint: statusColor)
                 }
 
-                HStack(spacing: 10) {
+                MetricStack {
                     MetricTile(title: "Device", value: deviceStore.selectedDevice?.name ?? "None", systemImage: "iphone")
                     MetricTile(title: "RSSI", value: rssiText, systemImage: "antenna.radiowaves.left.and.right")
                     MetricTile(title: "Average", value: averageText, systemImage: "waveform.path.ecg")
@@ -201,7 +225,7 @@ private struct PopoverOverviewView: View {
 
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
-                        Toggle("Protection enabled", isOn: $settings.isEnabled)
+                        Toggle("Automatic locking enabled", isOn: $settings.isEnabled)
                             .toggleStyle(.switch)
                         Spacer()
                         if let countdown = monitor.countdownRemaining {
@@ -288,7 +312,7 @@ private struct PopoverOverviewView: View {
 
     private var deviceSummary: String {
         guard let device = deviceStore.selectedDevice else {
-            return "No device selected. Open Devices from the sidebar and choose a paired Bluetooth device."
+            return "No device selected. Open Devices from the sidebar and choose a nearby BLE device."
         }
 
         return "\(device.name)\n\(device.identifier.uuidString)"
@@ -331,13 +355,13 @@ private struct PopoverOverviewView: View {
 struct DeviceSelectionView: View {
     @ObservedObject var scanner: BluetoothScanner
     @ObservedObject var deviceStore: DeviceStore
-    @State private var knownDevices = KnownBluetoothDeviceProvider.pairedDevices()
+    @State private var pairedDevices = KnownBluetoothDeviceProvider.pairedDevices()
 
     let onSelect: (BluetoothDevice) -> Void
 
     private var visibleDevices: [BluetoothDevice] {
         scanner.devices.filter { device in
-            KnownBluetoothDeviceProvider.isKnownDevice(device, knownDevices: knownDevices)
+            KnownBluetoothDeviceProvider.isKnownDevice(device, knownDevices: pairedDevices)
         }
     }
 
@@ -346,29 +370,30 @@ struct DeviceSelectionView: View {
             VStack(alignment: .leading, spacing: 16) {
                 AwayHeader(
                     title: "Bluetooth Devices",
-                    subtitle: "Choose a paired device for proximity locking.",
+                    subtitle: "Choose the nearby BLE device to use for proximity locking.",
                     systemImage: "dot.radiowaves.left.and.right"
-                ) {
-                    HStack(spacing: 10) {
-                        StatusPill(
-                            text: scanner.availability.displayName,
-                            systemImage: scanner.availability == .poweredOn ? "checkmark.circle.fill" : "exclamationmark.triangle.fill",
-                            tint: scanner.availability == .poweredOn ? .green : .orange
-                        )
-                        Button {
-                            knownDevices = KnownBluetoothDeviceProvider.pairedDevices()
-                            scanner.stopScanning()
-                            scanner.startScanning()
-                        } label: {
-                            Label("Refresh", systemImage: "arrow.clockwise")
-                        }
-                    }
-                }
+                )
 
                 HStack(spacing: 10) {
-                    MetricTile(title: "Visible", value: "\(visibleDevices.count)", systemImage: "sensor.tag.radiowaves.forward")
-                    MetricTile(title: "Known", value: "\(knownDevices.count)", systemImage: "person.crop.circle.badge.checkmark")
-                    MetricTile(title: "Selected", value: deviceStore.selectedDevice?.name ?? "None", systemImage: "checkmark.shield")
+                    StatusPill(
+                        text: scanner.availability.displayName,
+                        systemImage: scanner.availability == .poweredOn ? "checkmark.circle.fill" : "exclamationmark.triangle.fill",
+                        tint: scanner.availability == .poweredOn ? .green : .orange
+                    )
+
+                    Button {
+                        pairedDevices = KnownBluetoothDeviceProvider.pairedDevices()
+                        scanner.stopScanning()
+                        scanner.startScanning()
+                    } label: {
+                        Label("Refresh", systemImage: "arrow.clockwise")
+                    }
+                    .labelStyle(.titleAndIcon)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                SelectedDevicePanel(selectedDevice: deviceStore.selectedDevice) {
+                    deviceStore.clearSelection()
                 }
 
                 if visibleDevices.isEmpty {
@@ -395,12 +420,46 @@ struct DeviceSelectionView: View {
             }
         }
         .onAppear {
-            knownDevices = KnownBluetoothDeviceProvider.pairedDevices()
+            pairedDevices = KnownBluetoothDeviceProvider.pairedDevices()
         }
     }
 
     private var emptyStateDescription: String {
-        "Only devices already paired or known to this Mac are shown. Pair the target in macOS Bluetooth settings first, then refresh."
+        "Pair or trust the target in macOS Bluetooth settings, then refresh. AwayLock only shows scanned BLE devices whose name exactly matches a paired or known device; verify the UUID before selecting."
+    }
+}
+
+private struct SelectedDevicePanel: View {
+    let selectedDevice: SelectedDevice?
+    let unselect: () -> Void
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "checkmark.shield")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(.blue)
+                .frame(width: 24)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Selected device")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text(selectedDevice?.name ?? "None")
+                    .font(.callout.weight(.semibold))
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+            }
+
+            Spacer(minLength: 8)
+
+            if selectedDevice != nil {
+                Button("Unselect", action: unselect)
+                    .controlSize(.small)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 }
 
@@ -415,7 +474,7 @@ private struct DeviceRowView: View {
             ZStack {
                 Circle()
                     .fill(signalColor.opacity(0.16))
-                Image(systemName: isSelected ? "checkmark.shield.fill" : "dot.radiowaves.left.and.right")
+                Image(systemName: deviceIconName)
                     .font(.system(size: 19, weight: .semibold))
                     .foregroundStyle(signalColor)
             }
@@ -426,9 +485,6 @@ private struct DeviceRowView: View {
                     Text(device.name)
                         .font(.headline)
                         .lineLimit(1)
-                    if isSelected {
-                        StatusPill(text: "Selected", systemImage: "checkmark", tint: .green)
-                    }
                 }
 
                 HStack(spacing: 10) {
@@ -471,6 +527,43 @@ private struct DeviceRowView: View {
         }
         return .red
     }
+
+    private var deviceIconName: String {
+        let name = device.name.lowercased()
+
+        if name.contains("iphone") {
+            return "iphone"
+        }
+        if name.contains("watch") {
+            return "applewatch"
+        }
+        if name.contains("ipad") {
+            return "ipad"
+        }
+        if name.contains("macbook") || name.contains("mac mini") || name.contains("imac") || name.contains("mac studio") {
+            return "desktopcomputer"
+        }
+        if name.contains("airpods") || name.contains("headphone") || name.contains("headset") || name.contains("buds") {
+            return "headphones"
+        }
+        if name.contains("keyboard") {
+            return "keyboard"
+        }
+        if name.contains("mouse") {
+            return "computermouse"
+        }
+        if name.contains("trackpad") {
+            return "rectangle.and.hand.point.up.left"
+        }
+        if name.contains("speaker") || name.contains("sound") {
+            return "speaker.wave.2"
+        }
+        if name.contains("tag") || name.contains("airtag") {
+            return "tag"
+        }
+
+        return "dot.radiowaves.left.and.right"
+    }
 }
 
 @MainActor
@@ -509,7 +602,7 @@ struct SettingsView: View {
                         )
                         ToggleInfoRow(
                             title: "Launch at login",
-                            message: "Starts AwayLock after you sign in, so protection is active without opening it manually.",
+                            message: "Starts AwayLock after you sign in, so automatic locking is active without opening it manually.",
                             isOn: $settings.launchAtLogin
                         )
                         ToggleInfoRow(
@@ -581,7 +674,7 @@ struct SettingsView: View {
                         }
                         PermissionRow(
                             title: "Bluetooth",
-                            message: "Required for scanning nearby paired BLE devices.",
+                            message: "Required for scanning nearby BLE devices.",
                             systemImage: "dot.radiowaves.left.and.right",
                             actionTitle: "Open"
                         ) {
@@ -598,6 +691,7 @@ struct SettingsView: View {
                         BuyMeCoffeeButton()
                     }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
     }
@@ -618,86 +712,106 @@ struct SettingsView: View {
 }
 
 @MainActor
-struct LogsView: View {
-    @ObservedObject var logger: EventLogger
-
+struct AboutView: View {
     var body: some View {
         AwaySurface {
-            VStack(alignment: .leading, spacing: 16) {
-                AwayHeader(
-                    title: "Recent Events",
-                    subtitle: "The last operational messages from AwayLock.",
-                    systemImage: "list.bullet.rectangle"
-                ) {
-                    StatusPill(text: "\(logger.events.count) / 200", systemImage: "clock.arrow.circlepath", tint: .blue)
+            VStack(spacing: 18) {
+                Spacer(minLength: 4)
+
+                AppIconView(size: 96)
+
+                VStack(spacing: 8) {
+                    Text("AwayLock")
+                        .font(.system(size: 36, weight: .bold, design: .rounded))
+
+                    Text("v\(appVersion)")
+                        .font(.headline.monospacedDigit())
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 5)
+                        .background(.regularMaterial, in: Capsule())
                 }
 
-                if logger.events.isEmpty {
-                    EmptyStatePanel(
-                        title: "No events yet",
-                        message: "AwayLock will show scan, signal, pause, and lock events here.",
-                        systemImage: "doc.text.magnifyingglass"
-                    )
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else {
-                    ScrollView {
-                        LazyVStack(spacing: 8) {
-                            ForEach(logger.events.reversed()) { event in
-                                LogRowView(event: event)
-                            }
-                        }
-                        .padding(.vertical, 2)
+                Button {
+                    AboutLink.openChangelog()
+                } label: {
+                    Label("View Changelog", systemImage: "sparkles")
+                }
+                .controlSize(.large)
+
+                VStack(spacing: 12) {
+                    AboutCreditRow(label: "Built by", value: "Leos Rehacek")
+                    AboutCreditRow(label: "Open source on", value: "GitHub") {
+                        AboutLink.openGitHub()
                     }
                 }
-            }
-        }
-    }
-
-    private static let formatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm:ss"
-        return formatter
-    }()
-
-    private struct LogRowView: View {
-        let event: LogEvent
-
-        var body: some View {
-            HStack(alignment: .top, spacing: 12) {
-                Text(LogsView.formatter.string(from: event.date))
-                    .font(.caption.monospacedDigit())
-                    .foregroundStyle(.secondary)
-                    .frame(width: 58, alignment: .leading)
-
-                Circle()
-                    .fill(accentColor)
-                    .frame(width: 8, height: 8)
-                    .padding(.top, 4)
-
-                Text(event.message)
-                    .font(.callout)
-                    .foregroundStyle(.primary)
-                    .fixedSize(horizontal: false, vertical: true)
+                .font(.title3.weight(.semibold))
+                .padding(.top, 4)
 
                 Spacer(minLength: 0)
             }
-            .padding(12)
-            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding(.vertical, 18)
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+            }
+            .padding(14)
         }
+    }
 
-        private var accentColor: Color {
-            let message = event.message.lowercased()
-            if message.contains("failed") || message.contains("not found") {
-                return .red
+    private var appVersion: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.1.0"
+    }
+}
+
+private struct AboutCreditRow: View {
+    let label: String
+    let value: String
+    let action: (() -> Void)?
+
+    init(label: String, value: String, action: (() -> Void)? = nil) {
+        self.label = label
+        self.value = value
+        self.action = action
+    }
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Text(label)
+                .foregroundStyle(.secondary)
+            if let action {
+                Button(action: action) {
+                    Text(value)
+                        .fontWeight(.bold)
+                }
+                .buttonStyle(.plain)
+            } else {
+                Text(value)
+                    .fontWeight(.bold)
             }
-            if message.contains("paused") || message.contains("cooldown") || message.contains("weak") {
-                return .orange
-            }
-            if message.contains("selected") || message.contains("started") || message.contains("succeeded") {
-                return .green
-            }
-            return .blue
         }
+    }
+}
+
+private enum AboutLink {
+    static let changelogURL = URL(string: "https://github.com/rehacekleos/away-lock/blob/main/CHANGELOG.md")
+    static let gitHubURL = URL(string: "https://github.com/rehacekleos/away-lock")
+
+    static func openChangelog() {
+        open(changelogURL)
+    }
+
+    static func openGitHub() {
+        open(gitHubURL)
+    }
+
+    private static func open(_ url: URL?) {
+        guard let url else {
+            return
+        }
+        NSWorkspace.shared.open(url)
     }
 }
 
@@ -722,7 +836,7 @@ struct OnboardingView: View {
                     OnboardingStep(
                         number: "1",
                         title: "Allow Bluetooth",
-                        message: "AwayLock scans paired BLE devices to monitor signal strength.",
+                        message: "AwayLock scans nearby BLE devices to monitor signal strength.",
                         systemImage: "dot.radiowaves.left.and.right"
                     )
                     OnboardingStep(
@@ -880,6 +994,20 @@ private struct StatusPill: View {
     }
 }
 
+private struct MetricStack<Content: View>: View {
+    let content: () -> Content
+
+    init(@ViewBuilder content: @escaping () -> Content) {
+        self.content = content
+    }
+
+    var body: some View {
+        VStack(spacing: 10) {
+            content()
+        }
+    }
+}
+
 private struct MetricTile: View {
     let title: String
     let value: String
@@ -930,7 +1058,9 @@ private struct SettingsPanel<Content: View>: View {
             VStack(alignment: .leading, spacing: 10) {
                 content()
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(14)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
@@ -1027,7 +1157,6 @@ private struct PermissionRow: View {
 
 private enum SupportLink {
     static let profileURL = URL(string: "https://buymeacoffee.com/leosrehacek")
-    static let buttonImageURL = URL(string: "https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20coffee&emoji=%E2%98%95&slug=leosrehacek&button_colour=FFDD00&font_colour=000000&font_family=Cookie&outline_colour=000000&coffee_colour=ffffff")
 
     static func open() {
         guard let url = profileURL else {
@@ -1042,37 +1171,22 @@ private struct BuyMeCoffeeButton: View {
         Button {
             SupportLink.open()
         } label: {
-            AsyncImage(url: SupportLink.buttonImageURL) { phase in
-                switch phase {
-                case .success(let image):
-                    image
-                        .resizable()
-                        .scaledToFit()
-                case .failure:
-                    fallbackLabel
-                case .empty:
-                    ProgressView()
-                        .controlSize(.small)
-                        .frame(width: 217, height: 60)
-                @unknown default:
-                    fallbackLabel
-                }
-            }
-            .frame(width: 217, height: 60)
+            supportLabel
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Buy me a coffee")
     }
 
-    private var fallbackLabel: some View {
+    private var supportLabel: some View {
         HStack(spacing: 8) {
             Text("Buy me a coffee")
-                .font(.system(size: 24, weight: .regular, design: .rounded))
+                .font(.callout.weight(.semibold))
             Text("☕")
-                .font(.system(size: 21))
+                .font(.callout)
         }
         .foregroundStyle(.black)
-        .frame(width: 217, height: 60)
+        .padding(.horizontal, 12)
+        .frame(maxWidth: .infinity, minHeight: 32)
         .background(Color(red: 1.0, green: 0.87, blue: 0.0), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: 8, style: .continuous)

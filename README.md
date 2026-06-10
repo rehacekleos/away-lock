@@ -9,7 +9,7 @@ AwayLock is free. If you find it useful, the app includes an optional Buy Me a C
 ## Features
 
 - Menu bar-only app using AppKit and SwiftUI.
-- CoreBluetooth scanning with selection limited to devices already paired or known to this Mac.
+- CoreBluetooth scanning filtered to paired or known Bluetooth device names.
 - Stored selected device in `UserDefaults`.
 - RSSI moving average with configurable window.
 - Missing-device and weak-signal lock timeouts.
@@ -78,7 +78,7 @@ APPLE_APP_PASSWORD="app-specific-password" \
 
 ## Bluetooth Note
 
-CoreBluetooth scans Bluetooth LE advertisements. The selection window filters those scan results against devices already paired or known to this Mac through IOBluetooth. Pair the phone, watch, headphones, or other target in macOS Bluetooth settings first; classic Bluetooth devices may still not appear unless they advertise over BLE.
+CoreBluetooth scans Bluetooth LE advertisements and the picker shows only scanned BLE devices whose name exactly matches a device macOS reports as paired or known. Pair or trust the phone, watch, headphones, or other target in macOS Bluetooth settings first, then refresh. BLE names can be reused, so verify the UUID shown in AwayLock before selecting a proximity device. Classic Bluetooth devices may not appear unless they advertise over BLE.
 
 ## Privacy
 
