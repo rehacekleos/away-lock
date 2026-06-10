@@ -33,7 +33,7 @@ After pushing the repository, enable GitHub Pages in Settings > Pages and choose
 - Branch: `main`
 - Folder: `/docs`
 
-The site will be available at `https://leosrehacek.github.io/AwayLock/`.
+The site will be available at `https://rehacekleos.github.io/away-lock/`.
 
 ## Run From Source
 
