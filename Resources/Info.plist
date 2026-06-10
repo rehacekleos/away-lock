@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>en</string>
+    <key>CFBundleExecutable</key>
+    <string>AwayLock</string>
+    <key>CFBundleIdentifier</key>
+    <string>cz.leosrehacek.AwayLock</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon.icns</string>
+    <key>CFBundleName</key>
+    <string>AwayLock</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleShortVersionString</key>
+    <string>0.1.0</string>
+    <key>CFBundleVersion</key>
+    <string>1</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>14.0</string>
+    <key>LSUIElement</key>
+    <true/>
+    <key>NSBluetoothAlwaysUsageDescription</key>
+    <string>AwayLock scans nearby Bluetooth LE devices to lock this Mac when your selected device is no longer nearby.</string>
+    <key>NSBluetoothPeripheralUsageDescription</key>
+    <string>AwayLock scans nearby Bluetooth LE devices to lock this Mac when your selected device is no longer nearby.</string>
+    <key>NSAppleEventsUsageDescription</key>
+    <string>AwayLock sends the macOS lock shortcut to System Events when you choose Lock Now or when proximity lock triggers.</string>
+    <key>NSHumanReadableCopyright</key>
+    <string>Copyright 2026</string>
+</dict>
+</plist>
